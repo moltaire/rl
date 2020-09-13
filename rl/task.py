@@ -10,8 +10,8 @@ class TaskVars:
         """
 
         # Set up general task properties
-        self.n_trials = 100  # Number of trials per session
-        self.n_sessions = 2  # Number of session
+        self.n_trials = 100  # Number of trials per block
+        self.n_blocks = 2  # Number of blocks
         self.n_targets = 2  # Number of targets (options) per trial
 
         # Set up task rules (states)
@@ -47,7 +47,6 @@ class Task:
 
     def __repr__(self):
         return f"Task with the task rules:\n  {self.task_vars.task_rules}"
-
 
     def get_p_r_a(self, a_t):
         """This function returns the probability of reward, given the agents' action and the current task rule.
