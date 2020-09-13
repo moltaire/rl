@@ -35,14 +35,18 @@ def agent_task_interaction(task, agent):
     v_a_1 = np.full(T, np.nan)  # value a = 1
     ll = np.full(T, np.nan)  # log choice probability
 
-    T = 0
+    t = 0
     # Cycle over blocks b = 1, ..., n_blocks
     # --------------------------------------
     for b in range(0, n_blocks):
 
+        # Reset values (assume new stimuli in each block)
+        agent.v_a_t = np.zeros(2)
+        agent.p_a_t = np.zeros(2)
+
         # Cycle over trials t = 1,...T
         # ----------------------------
-        for t in range(0, n_trials):
+        for t_b in range(0, n_trials):
 
             # Task-agent interaction
             # ----------------------
@@ -75,7 +79,7 @@ def agent_task_interaction(task, agent):
             v_a_1[t] = agent.v_a_t[1]
             ll[t] = np.log(agent.p_a_t[np.int(a[t])])
 
-            T += 1  # increment trial counter
+            t += 1  # increment trial counter
 
     # Attach model variables to data frame
     df["trial"] = trial
