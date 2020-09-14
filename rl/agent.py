@@ -26,10 +26,10 @@ class Agent:
         """This function implements the softmax choice rule.
 
         Args:
-            v_a_t (array): Current action values
+            v_a_t (numpy.array): Current action values
 
         Returns:
-            p_a_t: Choice probabilities
+            p_a_t (numpy.array): Choice probabilities
         """
         p_a_t = np.exp(self.agent_vars.beta * v_a_t) / np.sum(
             np.exp(v_a_t * self.agent_vars.beta)
