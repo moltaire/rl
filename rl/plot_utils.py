@@ -79,3 +79,21 @@ def cm2inch(*tupl):
         return tuple(i / inch for i in tupl[0])
     else:
         return tuple(i / inch for i in tupl)
+
+
+def make_pstring(p, cutoff=0.001):
+    """This function formats a p-value into a string.
+    For example a p value of 1e-5 is formatted into the string "p < 0.001"
+
+    Args:
+        p (float): p-value
+        cutoff (float, optional): Cut-off value. P-values lower than this will be formatted as "p < {cutoff}". Defaults to 0.001
+
+    Returns:
+        str: Formatted p-value string
+    """
+    if p < cutoff:
+        pstring = f"p < {cutoff}"
+    else:
+        pstring = f"p = {p:.2f}"
+    return pstring
