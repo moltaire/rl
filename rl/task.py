@@ -34,6 +34,9 @@ class TaskVarsKahntPark2008(TaskVars):
             "2": {"p_r_0": 0.5, "p_r_1": 0.5, "a_correct": [0, 1]},
         }
 
+        self.reward = 1
+        self.noreward = 0
+
         # Set up reversal properties
         self.n_trials_reversal_min = 10  # Min. number of trials before reversal
         self.p_correct_reversal_min = 0.7  # Min. p_correct needed before reversal
@@ -80,7 +83,9 @@ class ReversalLearningTask:
             a_t (str): The agent's current action
         """
         p_r = self.get_p_r_a(a_t)
-        self.r_t = np.random.binomial(1, p_r)
+        self.r_t = np.random.choice(
+            [self.task_vars.reward, self.task_vars.noreward], p=[p_r, 1 - p_r]
+        )
 
         # Update reversal variables
         self.n_trials_current_state += 1
@@ -115,7 +120,7 @@ class ReversalLearningTask:
             ]
             new_state = np.random.choice(other_states)
             if verbose:
-                print(f"\n/!\ Reversal: {current_state} -> {new_state}\n")
+                print(f"\n/!\ Reversal: State {current_state} -> State {new_state}\n")
             self.state_t = new_state
             self.n_trials_current_state = 0  # Reset trials with current task rule
             self.n_correct_current_state = 0  # and number of correct responses
