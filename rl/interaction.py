@@ -70,6 +70,8 @@ def agent_task_interaction(task, agent):
             task.sample_reward(agent.a_t)
 
             # Learning
+            # Save pre-learning Q values
+            Q_t = agent.Q_t.copy()
             agent.learn(task.r_t)
 
             # Record task variables
@@ -90,7 +92,8 @@ def agent_task_interaction(task, agent):
             corr[t] = task.correct_t
             for i in range(n_options):
                 p_a[t, i] = agent.p_a_t[i]
-                Q[t, i] = agent.Q_t[agent.s_t, i]
+                # Save pre-learning Q values (those were used to make the choice)
+                Q[t, i] = Q_t[agent.s_t, i]
             ll[t] = np.log(agent.p_a_t[np.int(a[t])])
 
             t += 1  # increment trial counter

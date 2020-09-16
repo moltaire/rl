@@ -103,7 +103,7 @@ print("3.2 Let the agent perform the MS-task")
 print("-------------------------------------")
 
 ms_data = rl.interaction.agent_task_interaction(ms_task, agent)
-fig, axs = rl.plots.plot_data(ms_data.sort_values("state").reset_index())
+fig, axs = rl.plots.plot_data(ms_data.sort_values(["state", "trial"]).reset_index())
 axs[-1].set_xlabel("Trial (re-sorted by state for visualization)")
 plt.savefig("ms_example-data.pdf")
 ms_data.to_csv("ms_example-data.csv")
