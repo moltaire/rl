@@ -29,9 +29,9 @@ class TaskVarsKahntPark2008(TaskVars):
         # Each state contains probabilities of reward for each action (p_r_a)
         # and the a list of correct responses.
         self.states = {
-            "0": {"p_r_0": 0.2, "p_r_1": 0.8, "a_correct": [1]},
-            "1": {"p_r_0": 0.8, "p_r_1": 0.2, "a_correct": [0]},
-            "2": {"p_r_0": 0.5, "p_r_1": 0.5, "a_correct": [0, 1]},
+            "0": {"p_r": np.array([0.2, 0.8]), "a_correct": [1]},
+            "1": {"p_r": np.array([0.8, 0.2]), "a_correct": [0]},
+            "2": {"p_r": np.array([0.5, 0.5]), "a_correct": [0, 1]},
         }
 
         self.reward = 1
@@ -73,7 +73,7 @@ class ReversalLearningTask:
         Args:
             a_t (str): The agent's current action
         """
-        p_r_a = self.task_vars.states[self.state_t][f"p_r_{a_t}"]
+        p_r_a = self.task_vars.states[self.state_t]["p_r"][a_t]
         return p_r_a
 
     def sample_reward(self, a_t):

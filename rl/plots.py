@@ -12,12 +12,22 @@ def plot_data(data):
     Args:
         data (pd.DataFrame): Dataframe containing the data.
                              Must have the following columns:
-                             `trial`, `a`, `r`, `v_a_0`, `v_a_1`, `p_r_0`, `p_r_1`, `rule`
+                             `trial`, `a`, `r`, `state` and
+                             `v_a_{i}`, `p_r_{i}` for each option i.
     
     Returns:
         (matplotlib.figure, matplotlib.axes)
     """
-    fig, axs = plt.subplots(5, 1, figsize=cm2inch(15, 7.5), sharex=True)
+
+    # Get number of options in the data
+    n_options = np.sum(data.columns.str.startswith("v_a_"))
+    options = range(n_options)
+
+    # Set up the figure
+    n_panels = 3 + n_options  # choice, reward, v_a_i / p_r_i, state
+    fig, axs = plt.subplots(
+        n_panels, 1, figsize=cm2inch(n_panels * 3, 7.5), sharex=True
+    )
 
     # Choice (a_t)
     axs[0].plot(data["a"], "ok")
@@ -30,18 +40,18 @@ def plot_data(data):
     axs[1].set_ylim(-0.5, 1.5)
 
     # The agent's action values and the tasks true reward probabilities
-    for ax, action in zip([axs[2], axs[3]], [0, 1]):
-        ax.plot(data[f"v_a_{action}"], color=f"C{action}")
-        ax.plot(data[f"p_r_{action}"], "--", color="gray", alpha=0.5, zorder=-1)
-        ax.set_ylabel(f"Value {action}\n$(v_{{a_t}}$)")
+    for ax, option in zip(axs[2:-1], options):
+        ax.plot(data[f"v_a_{option}"], color=f"C{option}")
+        ax.plot(data[f"p_r_{option}"], "--", color="gray", alpha=0.5, zorder=-1)
+        ax.set_ylabel(f"Value {option}\n$(v_{{a_t}}$)")
         ax.set_ylim(-0.1, 1.1)
         ax.set_yticks([0, 1])
 
-    # Task rule
-    axs[-1].plot(data["rule"], color="black")
-    axs[-1].set_yticks(data["rule"].unique())
-    axs[-1].set_ylim(data["rule"].min() - 0.5, data["rule"].max() + 0.5)
-    axs[-1].set_ylabel("Rule\n$(s_t)$")
+    # Task state
+    axs[-1].plot(data["state"], color="black")
+    axs[-1].set_yticks(data["state"].unique())
+    axs[-1].set_ylim(data["state"].min() - 0.5, data["state"].max() + 0.5)
+    axs[-1].set_ylabel("State\n$(s_t)$")
 
     axs[-1].set_xlabel("Trial")
 

@@ -9,7 +9,7 @@ from rl.estimation import Estimation, EstimationVars
 from rl.interaction import agent_task_interaction
 from rl.plot_utils import set_mpl_defaults
 from rl.plots import plot_recovery_results
-from rl.task import Task, TaskVars
+from rl.task import ReversalLearningTask, TaskVarsKahntPark2008
 
 
 def run_recovery(task, agent, est, parameter_values):
