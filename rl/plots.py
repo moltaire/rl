@@ -13,18 +13,18 @@ def plot_data(data):
         data (pd.DataFrame): Dataframe containing the data.
                              Must have the following columns:
                              `trial`, `a`, `r`, `state` and
-                             `v_a_{i}`, `p_r_{i}` for each option i.
+                             `Q_{i}`, `p_r_{i}` for each option i.
     
     Returns:
         (matplotlib.figure, matplotlib.axes)
     """
 
     # Get number of options in the data
-    n_options = np.sum(data.columns.str.startswith("v_a_"))
+    n_options = np.sum(data.columns.str.startswith("Q_"))
     options = range(n_options)
 
     # Set up the figure
-    n_panels = 3 + n_options  # choice, reward, v_a_i / p_r_i, state
+    n_panels = 3 + n_options  # choice, reward, Q_i / p_r_i, state
     fig, axs = plt.subplots(
         n_panels, 1, figsize=cm2inch(n_panels * 3, 7.5), sharex=True
     )
@@ -32,20 +32,17 @@ def plot_data(data):
     # Choice (a_t)
     axs[0].plot(data["a"], "ok")
     axs[0].set_ylabel("Choice\n$(a_t)$")
-    axs[0].set_ylim(-0.5, 1.5)
 
     # Reward
     axs[1].plot(data["r"], "ok")
     axs[1].set_ylabel("Reward\n$(r_t)$")
-    axs[1].set_ylim(-0.5, 1.5)
 
     # The agent's action values and the tasks true reward probabilities
     for ax, option in zip(axs[2:-1], options):
-        ax.plot(data[f"v_a_{option}"], color=f"C{option}")
-        ax.plot(data[f"p_r_{option}"], "--", color="gray", alpha=0.5, zorder=-1)
-        ax.set_ylabel(f"Value {option}\n$(v_{{a_t}}$)")
-        ax.set_ylim(-0.1, 1.1)
-        ax.set_yticks([0, 1])
+        ax.plot(data[f"Q_{option}"], color=f"C{option}")
+        ax.plot(data[f"ev_{option}"], "--", color="gray", alpha=0.5, zorder=-1)
+        ax.axhline(0, color="black", linewidth=0.5, zorder=-2)
+        ax.set_ylabel(f"Value {option}\n$(Q_{{a_t}}$)")
 
     # Task state
     axs[-1].plot(data["state"], color="black")
@@ -75,10 +72,10 @@ def plot_recovery_results(
 
     fig, axs = plt.subplots(3, 3, figsize=cm2inch(9, 9), sharex=True, sharey=True)
 
-    parameter_names = ["alpha_win", "alpha_loss", "beta"]
+    parameter_names = ["alpha_pos", "alpha_neg", "beta"]
     parameter_labels = {
-        "alpha_win": r"$\alpha_{win}$",
-        "alpha_loss": r"$\alpha_{loss}$",
+        "alpha_pos": r"$\alpha_{+}$",
+        "alpha_neg": r"$\alpha_{-}$",
         "beta": r"$\beta$",
     }
 

@@ -9,7 +9,7 @@ from rl.estimation import Estimation, EstimationVars
 from rl.interaction import agent_task_interaction
 from rl.plot_utils import set_mpl_defaults
 from rl.plots import plot_recovery_results
-from rl.task import ReversalLearningTask, TaskVarsKahntPark2008
+from rl.task import ReversalLearningTask, TaskVars
 
 
 def run_recovery(task, agent, est, parameter_values):
@@ -29,8 +29,8 @@ def run_recovery(task, agent, est, parameter_values):
 
     # Calculate total number of recoveries to perform
     n_recovs = (
-        3 * 3 * len(parameter_values["alpha_win"]["variable"])
-        + 3 * 3 * len(parameter_values["alpha_loss"]["variable"])
+        3 * 3 * len(parameter_values["alpha_pos"]["variable"])
+        + 3 * 3 * len(parameter_values["alpha_neg"]["variable"])
         + 3 * 3 * len(parameter_values["beta"]["variable"])
     )
 
@@ -70,15 +70,15 @@ def run_recovery(task, agent, est, parameter_values):
                     parameters[var] = v
 
                     # Assign the parameters to the agent
-                    agent.agent_vars.alpha_win = parameters["alpha_win"]
-                    agent.agent_vars.alpha_loss = parameters["alpha_loss"]
+                    agent.agent_vars.alpha_pos = parameters["alpha_pos"]
+                    agent.agent_vars.alpha_neg = parameters["alpha_neg"]
                     agent.agent_vars.beta = parameters["beta"]
 
                     # Simulate data, by letting the agent interact with the task
                     data = agent_task_interaction(task, agent)
 
                     # Estimate parameters from the simulated data, using the estimation instance
-                    nll, bic, (alpha_win_hat, alpha_loss_hat, beta_hat) = est.estimate(
+                    nll, bic, (alpha_pos_hat, alpha_neg_hat, beta_hat) = est.estimate(
                         data=data, seed=i
                     )
 
@@ -86,11 +86,11 @@ def run_recovery(task, agent, est, parameter_values):
                     result = pd.DataFrame(
                         dict(
                             variable=var,
-                            alpha_win=parameters["alpha_win"],
-                            alpha_loss=parameters["alpha_loss"],
+                            alpha_pos=parameters["alpha_pos"],
+                            alpha_neg=parameters["alpha_neg"],
                             beta=parameters["beta"],
-                            alpha_win_hat=alpha_win_hat,
-                            alpha_loss_hat=alpha_loss_hat,
+                            alpha_pos_hat=alpha_pos_hat,
+                            alpha_neg_hat=alpha_neg_hat,
                             beta_hat=beta_hat,
                             n_trials=task.task_vars.n_trials,
                             n_blocks=task.task_vars.n_blocks,
@@ -118,26 +118,47 @@ def run_recovery(task, agent, est, parameter_values):
 if __name__ == "__main__":
 
     # Set up task
-    task_vars = TaskVars()
-    task_vars.n_trials = 100
-    task_vars.n_blocks = 2
-    task = Task(task_vars=task_vars)
+    task_vars = TaskVars(n_trials=20, n_blocks=2, n_options=2)
+
+    states = {
+        "0": {
+            "p_r": np.array([0.2, 0.8]),
+            "a_correct": [1],
+            "rewards": np.array([1, 0]),
+        },
+        "1": {
+            "p_r": np.array([0.8, 0.2]),
+            "a_correct": [0],
+            "rewards": np.array([1, 0]),
+        },
+        "2": {
+            "p_r": np.array([0.5, 0.5]),
+            "a_correct": [0, 1],
+            "rewards": np.array([1, 0]),
+        },
+    }
+
+    task_vars.states = states
+    task_vars.n_trials_reversal_min = 10
+    task_vars.n_trials_reversal_max = 16
+    task_vars.p_correct_reversal_min = 0.7
+
+    task = ReversalLearningTask(task_vars=task_vars)
+    print(task)
 
     # Set up agent
-    agent_vars = AgentVars()
-    agent_vars.alpha_win = np.nan
-    agent_vars.alpha_loss = np.nan
-    agent_vars.beta = np.nan
-    agent = Agent(agent_vars=agent_vars)
+    agent_vars = AgentVars(alpha_pos=np.nan, alpha_neg=np.nan, beta=np.nan)
+    agent = DualLearningRateAgent(agent_vars=agent_vars)
+    print(agent)
 
     # Set up parameter ranges
-    alpha_win_values = {
+    alpha_pos_values = {
         "variable": np.linspace(0, 1.0, 10),
         "low": 0.1,
         "medium": 0.3,
         "high": 0.6,
     }
-    alpha_loss_values = {
+    alpha_neg_values = {
         "variable": np.linspace(0, 1.0, 10),
         "low": 0.1,
         "medium": 0.3,
@@ -150,8 +171,8 @@ if __name__ == "__main__":
         "high": 10,
     }
     parameter_values = {
-        "alpha_win": alpha_win_values,
-        "alpha_loss": alpha_loss_values,
+        "alpha_pos": alpha_pos_values,
+        "alpha_neg": alpha_neg_values,
         "beta": beta_values,
     }
 
@@ -167,6 +188,6 @@ if __name__ == "__main__":
     # Make a plot
     matplotlib = set_mpl_defaults(matplotlib)
     fig, axs = plot_recovery_results(
-        recovery_results, variable_parameter="alpha_win", limits=[0, 1], ticks=[0, 1]
+        recovery_results, variable_parameter="alpha_pos", limits=[0, 1], ticks=[0, 1]
     )
     plt.savefig("recovery_alpha-win.pdf")

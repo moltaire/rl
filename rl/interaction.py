@@ -14,7 +14,14 @@ def agent_task_interaction(task, agent):
     n_trials = task.task_vars.n_trials
     n_blocks = task.task_vars.n_blocks
     n_options = task.task_vars.n_options
+    n_states = task.task_vars.n_states
+
     T = n_trials * n_blocks
+
+    # Reset trial and block counters for task
+    task.block = 0
+    task.trial = 0
+
     # Initialize data frame for recorded variables
     df = pd.DataFrame(index=range(0, T), dtype="float")
 
@@ -24,13 +31,14 @@ def agent_task_interaction(task, agent):
     block = np.full(T, np.nan)  # block
     state = np.full(T, np.nan)  # state (rule / condition)
     p_r = np.full((T, n_options), np.nan)  # reward probability for actions
+    ev = np.full((T, n_options), np.nan)  # expected value for actions
     r = np.full(T, np.nan)  # reward
 
     ## Agent variables
     a = np.full(T, np.nan)  # decision
     corr = np.full(T, np.nan)  # correct decision
     p_a = np.full((T, n_options), np.nan)  # probability of actions
-    v_a = np.full((T, n_options), np.nan)  # action values
+    Q = np.full((T, n_options), np.nan)  # action values
     ll = np.full(T, np.nan)  # log choice probability
 
     t = 0
@@ -39,7 +47,7 @@ def agent_task_interaction(task, agent):
     for b in range(0, n_blocks):
 
         # Reset values (assume new stimuli in each block)
-        agent.v_a_t = np.zeros(n_options)
+        agent.Q_t = np.zeros((n_states, n_options))
         agent.p_a_t = np.zeros(n_options)
 
         # Cycle over trials t = 1,...T
@@ -48,6 +56,13 @@ def agent_task_interaction(task, agent):
 
             # Task-agent interaction
             # ----------------------
+
+            # Prepare the next trial (check for reversals / choose next state)
+            task.prepare_trial()
+
+            # Observe the current state
+            agent.observe_state(task)
+
             # Make a choice
             agent.decide()
 
@@ -57,9 +72,6 @@ def agent_task_interaction(task, agent):
             # Learning
             agent.learn(task.r_t)
 
-            # Prepare the next trial (check for reversals / choose next state)
-            task.prepare_next_trial()
-
             # Record task variables
             trial[t] = t
             block[t] = b
@@ -67,12 +79,18 @@ def agent_task_interaction(task, agent):
             r[t] = task.r_t
             for i in range(n_options):
                 p_r[t, i] = task.task_vars.states[task.state_t]["p_r"][i]
+                ev[t, i] = (
+                    task.task_vars.states[task.state_t]["p_r"][i]
+                    * task.task_vars.states[task.state_t]["rewards"][0]
+                    + (1 - task.task_vars.states[task.state_t]["p_r"][i])
+                    * task.task_vars.states[task.state_t]["rewards"][1]
+                )
             # Record agent variables
             a[t] = agent.a_t
             corr[t] = task.correct_t
             for i in range(n_options):
                 p_a[t, i] = agent.p_a_t[i]
-                v_a[t, i] = agent.v_a_t[i]
+                Q[t, i] = agent.Q_t[agent.s_t, i]
             ll[t] = np.log(agent.p_a_t[np.int(a[t])])
 
             t += 1  # increment trial counter
@@ -83,12 +101,13 @@ def agent_task_interaction(task, agent):
     df["state"] = state
     for i in range(n_options):
         df[f"p_r_{i}"] = p_r[:, i]
+        df[f"ev_{i}"] = ev[:, i]
     df["r"] = r
     df["a"] = a
     df["corr"] = corr
     for i in range(n_options):
         df[f"p_a_{i}"] = p_a[:, i]
-        df[f"v_a_{i}"] = v_a[:, i]
+        df[f"Q_{i}"] = Q[:, i]
     df["ll"] = ll
 
     return df
@@ -120,7 +139,7 @@ if __name__ == "__main__":
     task = ReversalLearningTask(task_vars=task_vars)
 
     # Agent
-    agent_vars = AgentVars(alpha_win=0.2, alpha_loss=0.1, beta=4)
+    agent_vars = AgentVars(alpha_pos=0.2, alpha_neg=0.1, beta=4)
     agent = DualLearningRateAgent(agent_vars=agent_vars)
 
     df = agent_task_interaction(task, agent)
