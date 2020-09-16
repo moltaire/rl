@@ -21,7 +21,7 @@ class AgentVars:
 
 
 class DualLearningRateAgent:
-    """This class implements a Dual-Learning-Rate agent as described in Kahnt, Park et al. (2008).
+    """This class implements a Dual-Learning-Rate agent as described in Kahnt, Park et al. (2008) or Lefebvre et al. (2017).
 
     This agent needs the following agent_vars to be set:
         
@@ -31,16 +31,18 @@ class DualLearningRateAgent:
             This parameter is not mentioned in Kahnt, Park et al. (2008), but used here anyway.
     """
 
-    def __init__(self, agent_vars, n_options):
+    def __init__(self, agent_vars, n_options, variant="delta"):
         """Initialize the Dual-Learning-Rate agent.
 
         Args:
             agent_vars (rl.agent.AgentVars): Agent specific parameters. Must have `alpha_win`, `alpha_loss` and `beta` attributes.
             n_options (int): Number of options to represent.
+            variant (str, one of `['delta', 'r']`, optional): Toggle between (`r`) the Kahnt, Park et al. (2008), where the learning rate differs between positive and negative rewards (r > 0 vs r <= 0) and (`delta`) the Lefebvre et al. (2017) variant, where the learning rate differs between positive and negative *prediction errors* (delta > 0 vs delta < 0). Defaults to the Lefebvre variant (`delta`).
         """
         self.check_agent_vars(agent_vars)
         self.agent_vars = agent_vars
         self.options = range(n_options)
+        self.variant = variant
         self.v_a_t = np.zeros(n_options)  # Initial values
         self.a_t = None  # Initial action
 
@@ -50,7 +52,7 @@ class DualLearningRateAgent:
                 raise ValueError(f"agent_vars is missing `{var}` attribute.")
 
     def __repr__(self):
-        return f"Dual learning rate agent with\n  alpha_win = {self.agent_vars.alpha_win}\n  alpha_loss = {self.agent_vars.alpha_loss}\n  beta = {self.agent_vars.beta}"
+        return f"Dual learning rate agent ({self.variant} variant) with\n  alpha_win = {self.agent_vars.alpha_win}\n  alpha_loss = {self.agent_vars.alpha_loss}\n  beta = {self.agent_vars.beta}"
 
     def softmax(self, v_a_t):
         """This function implements the softmax choice rule.
@@ -73,10 +75,19 @@ class DualLearningRateAgent:
             r_t (int): Current reward
         """
         delta_a_t = r_t - self.v_a_t[self.a_t]
-        if r_t > 0:
+
+        # Determine learning rate, depending on model variant...
+        if self.variant == "r":
+            reference_var = r_t
+        elif self.variant == "delta":
+            reference_var = delta_a_t
+
+        # and value of the reference variable (r or delta)
+        if reference_var > 0:
             alpha = self.agent_vars.alpha_win
-        elif r_t <= 0:
+        elif reference_var <= 0:
             alpha = self.agent_vars.alpha_loss
+
         self.v_a_t[self.a_t] += alpha * delta_a_t
 
     def decide(self):
