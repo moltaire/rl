@@ -45,7 +45,6 @@ class DualLearningRateAgent:
         self.options = range(n_options)
         self.variant = variant
         self.Q_t = np.zeros((n_states, n_options))  # Initial values
-        print(self.Q_t.shape)
         self.a_t = None  # Initial action
         self.s_t = 0  # Initial state
 
