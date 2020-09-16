@@ -99,15 +99,16 @@ class DualLearningRateAgent:
 
 if __name__ == "__main__":
 
-    np.random.seed(2)
+    np.random.seed(1)
 
     # "Task" setup
     n_trials = 100
-    p_r = {0: 0.8, 1: 0.2}
+    p_r = {0: 0.75, 1: 0.25}
 
     # Agent setup
-    agent_vars = AgentVars(alpha_win=0.3, alpha_loss=0.1, beta=1)
-    agent = DualLearningRateAgent(agent_vars=agent_vars, n_options=2)
+    agent_vars = AgentVars(alpha_win=0.1, alpha_loss=0.05, beta=3)
+    agent = DualLearningRateAgent(agent_vars=agent_vars, n_options=2, variant="delta")
+    print(agent)
     print(f"  v_a_t: {agent.v_a_t}")
 
     # Task performance
