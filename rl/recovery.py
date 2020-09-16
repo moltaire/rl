@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm.notebook import tqdm
 
-from rl.agent import Agent, AgentVars
+from rl.agent import AgentVars, DualLearningRateAgent
 from rl.estimation import Estimation, EstimationVars
 from rl.interaction import agent_task_interaction
 from rl.plot_utils import set_mpl_defaults

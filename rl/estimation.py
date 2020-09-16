@@ -1,35 +1,41 @@
 import numpy as np
 from scipy.optimize import minimize
 
-from rl.agent import Agent, AgentVars
+from rl.agent import AgentVars, DualLearningRateAgent
 
 
 class EstimationVars:
-    def __init__(self, task_vars):
-        """ This function defines the instance variable unique to each instance
-                      n_trials: Number of trials
-                      n_sim: Number of simulations
-                      n_sp: Number of starting points
-                      alpha_win_bnds: Estimation boundaries for alpha_win parameter
-                      alpha_win_fixedsp: Fixed starting point for alpha_win parameter
-                      alpha_loss_bnds: Estimation boundaries for alpha_loss parameter
-                      alpha_loss_fixedsp: Fixed starting point for alpha_loss parameter
-                      beta_bnds: Estimation boundaries for beta parameter
-                      beta_fixedsp: Fixed starting point for beta parameter
-                      rand_sp: Indicate if you want to use random starting points
+    def __init__(
+        self,
+        task_vars,
+        agent_class,
+        parameters,
+        bounds,
+        fixed_sp=None,
+        n_sp=1,
+        rand_sp=True,
+    ):
+        """This function initializes variables for estimation.
+
+        Args:
+            task_vars (rl.task.TaskVars): Task variables, needed to set number of trials and blocks.
+            agent_class (class): The agent class to estimate parameters for. For example `rl.agent.DualLearningRateAgent`
+            parameters (list): List of parameter names to include in estimation.
+            bounds (dict): Dictionary of tuples, indicating bounds for each parameter. Bounds are used to determine random starting points, and to constrain optimization procedure.
+            fixed_sp (dict, optional): Dictionary of floats, indicating fixed starting points for each parameter. Used if `rand_sp` is True.
+            n_sp (int, optional): Number of starting points. Defaults to 1.
+            rand_sp (bool, optional): Toggle use of random starting points. If False, fixed starting points are used. Defaults to True.
         """
         self.n_trials = task_vars.n_trials
         self.n_blocks = task_vars.n_blocks
-        self.n_sim = np.nan
-        self.n_sp = 1
-        self.n_params = 3
-        self.alpha_win_bnds = (0, 1)
-        self.alpha_loss_bnds = (0, 1)
-        self.beta_bnds = (0, 20)
-        self.alpha_win_fixedsp = 0.5
-        self.alpha_loss_fixedsp = 0.5
-        self.beta_fixedsp = 5
-        self.rand_sp = True
+        self.n_options = task_vars.n_options
+        self.agent_class = agent_class
+        self.n_sp = n_sp
+        self.parameters = parameters
+        self.n_params = len(parameters)
+        self.bounds = bounds
+        self.fixed_sp = fixed_sp
+        self.rand_sp = rand_sp
 
 
 class Estimation:
@@ -42,11 +48,11 @@ class Estimation:
         Args:
             x (np.array): Free parameters
             data (pd.DataFrame): DataFrame containing choice (`a`) and reward (`r`) data.
-            agent_vars (rl.agent.AgentVars): Agent specific variables.
+            agent (rl.agent.AgentVars): Agent variables.
         """
 
         # Name parameter inputs
-        alpha_win, alpha_loss, beta = x
+        parameters = {self.est_vars.parameters[i]: x[i] for i, v in enumerate(x)}
 
         # Initialize likelihood array
         llh_a = np.full([self.est_vars.n_trials, self.est_vars.n_blocks], np.nan)
@@ -58,13 +64,12 @@ class Estimation:
             a = data[data["block"] == b]["a"].values
             r = data[data["block"] == b]["r"].values
 
-            # Agent initialization
-            agent = Agent(agent_vars)
-
             # Assign current parameters
-            agent.agent_vars.alpha_win = alpha_win
-            agent.agent_vars.alpha_loss = alpha_loss
-            agent.agent_vars.beta = beta
+            agent_vars.update(**parameters)
+            # Agent initialization
+            agent = self.est_vars.agent_class(
+                agent_vars=agent_vars, n_options=self.est_vars.n_options
+            )
 
             # Initialize block specific variables
             cp = np.full(self.est_vars.n_trials, np.nan)  # choice probability
@@ -107,10 +112,12 @@ class Estimation:
         for r in range(self.est_vars.n_sp):
 
             # Estimate parameters
+            # -------------------
+
+            # Make a list of parameter bound tuples
             bounds = [
-                self.est_vars.alpha_win_bnds,
-                self.est_vars.alpha_loss_bnds,
-                self.est_vars.beta_bnds,
+                self.est_vars.bounds[parameter]
+                for parameter in self.est_vars.parameters
             ]
 
             # Set starting points
@@ -118,13 +125,14 @@ class Estimation:
                 x0 = [np.random.uniform(b[0], b[1]) for b in bounds]
             else:
                 x0 = [
-                    self.est_vars.alpha_win_fixedsp,
-                    self.est_vars.alpha_loss_fixedsp,
-                    self.est_vars.beta_fixedsp,
+                    self.est_vars.fixed_sp[parameter]
+                    for parameter in self.est_vars.parameters
                 ]
 
             # Run the estimation
-            result = minimize(self.llh, x0, args=(data, agent_vars), method="L-BFGS-B", bounds=bounds)
+            result = minimize(
+                self.llh, x0, args=(data, agent_vars), method="L-BFGS-B", bounds=bounds
+            )
 
             # Extract maximum likelihood parameter estimate
             x = result.x

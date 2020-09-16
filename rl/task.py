@@ -4,43 +4,25 @@ import numpy as np
 class TaskVars:
     # This class specifies the task parameters
 
-    def __init__(self):
-        """This function defines the instance variables.
+    def __init__(self, n_trials, n_blocks=1, n_options=2, **kwargs):
+        """This function initializes task variables.
+
+        Args:
+            n_trials (int): Number of trials per block.
+            n_blocks (int, optional): Number of blocks. Defaults to 1.
+            n_options (int, optional): Number of options. Defaults to 2.
+            
+            Additional task variables needed by a specific task (e.g., states, rewards) can be given as kwargs.
         """
 
         # Set up general task properties
-        self.n_trials = 100  # Number of trials per block
-        self.n_blocks = 2  # Number of blocks
-        self.n_options = 2  # Number of targets (options) per trial
+        self.n_trials = n_trials
+        self.n_blocks = n_blocks
+        self.n_options = n_options
 
-
-class TaskVarsKahntPark2008(TaskVars):
-    def __init__(self):
-        """This function defines the instance variables
-           following Kahnt, Park et al. (2008)
-        """
-
-        # Set up general task properties
-        self.n_trials = 100  # Number of trials per block
-        self.n_blocks = 2  # Number of blocks
-        self.n_options = 2  # Number of targets (options) per trial
-
-        # Set up task rules (states)
-        # Each state contains probabilities of reward for each action (p_r_a)
-        # and the a list of correct responses.
-        self.states = {
-            "0": {"p_r": np.array([0.2, 0.8]), "a_correct": [1]},
-            "1": {"p_r": np.array([0.8, 0.2]), "a_correct": [0]},
-            "2": {"p_r": np.array([0.5, 0.5]), "a_correct": [0, 1]},
-        }
-
-        self.reward = 1
-        self.noreward = 0
-
-        # Set up reversal properties
-        self.n_trials_reversal_min = 10  # Min. number of trials before reversal
-        self.p_correct_reversal_min = 0.7  # Min. p_correct needed before reversal
-        self.n_trials_reversal_max = 16  # Max. number of trials before reversal
+        # Other parameters given as kwargs
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
 class ReversalLearningTask:
@@ -53,6 +35,7 @@ class ReversalLearningTask:
             task_vars (TaskVars): Set of task variables
         """
         self.kind = "reversal-learning"
+        self.check_task_vars(task_vars)
         self.task_vars = task_vars
 
         # By default, initialize a task with a random rule (state)
@@ -63,6 +46,10 @@ class ReversalLearningTask:
         self.n_correct_current_state = 0  # and number of correct responses
         self.p_correct_current_state = 0
         self.correct_t = None
+
+    def check_task_vars(self, task_vars):
+        # Todo: Check task variables so that states and reversal parameters are defined.
+        return True
 
     def __repr__(self):
         return f"Reversal learning task with the states (rules):\n  {self.task_vars.states}"
@@ -132,9 +119,23 @@ if __name__ == "__main__":
     np.random.seed(1)
 
     # Task setup
-    task_vars = TaskVarsKahntPark2008()
-    task_vars.n_trials = 50
-    task_vars.n_blocks = 1
+    task_vars = rl.task.TaskVars()
+    task_vars.n_trials = 100
+    task_vars.n_blocks = 2
+
+    states = {
+        "0": {"p_r": np.array([0.2, 0.8]), "a_correct": [1]},
+        "1": {"p_r": np.array([0.8, 0.2]), "a_correct": [0]},
+        "2": {"p_r": np.array([0.5, 0.5]), "a_correct": [0, 1]},
+    }
+
+    task_vars.states = states
+    task_vars.n_trials_reversal_min = 10
+    task_vars.n_trials_reversal_max = 16
+    task_vars.p_correct_reversal_min = 0.7
+    task_vars.reward = 1
+    task_vars.noreward = 0
+
     task = ReversalLearningTask(task_vars=task_vars)
 
     for trial in range(task.task_vars.n_trials):

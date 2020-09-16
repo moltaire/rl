@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from rl.agent import Agent, AgentVars
-from rl.task import ReversalLearningTask, TaskVarsKahntPark2008
+from rl.agent import AgentVars, DualLearningRateAgent
+from rl.task import ReversalLearningTask, TaskVars
 
 
 def agent_task_interaction(task, agent):
@@ -102,12 +102,26 @@ if __name__ == "__main__":
     # Task
     task_vars = TaskVars()
     task_vars.n_trials = 100
-    task_vars.n_blocks = 1
-    task = Task(task_vars=task_vars)
+    task_vars.n_blocks = 2
+
+    states = {
+        "0": {"p_r": np.array([0.2, 0.8]), "a_correct": [1]},
+        "1": {"p_r": np.array([0.8, 0.2]), "a_correct": [0]},
+        "2": {"p_r": np.array([0.5, 0.5]), "a_correct": [0, 1]},
+    }
+
+    task_vars.states = states
+    task_vars.n_trials_reversal_min = 10
+    task_vars.n_trials_reversal_max = 16
+    task_vars.p_correct_reversal_min = 0.7
+    task_vars.reward = 1
+    task_vars.noreward = 0
+
+    task = ReversalLearningTask(task_vars=task_vars)
 
     # Agent
-    agent_vars = AgentVars()
-    agent = Agent(agent_vars=agent_vars)
+    agent_vars = AgentVars(alpha_win=0.2, alpha_loss=0.1, beta=4)
+    agent = DualLearningRateAgent(agent_vars=agent_vars)
 
     df = agent_task_interaction(task, agent)
     df.to_csv(OUTPUT_FILE)

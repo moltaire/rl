@@ -2,22 +2,52 @@ import numpy as np
 
 
 class AgentVars:
-    # This class specifies the agent parameters
+    # This class specifies the agent parameters.
 
-    def __init__(self):
-        """ This function defines the instance variable unique to each instance
+    def __init__(self, **kwargs):
+        """Here, agent parameters are initialized.
+
+        Example for an rl.agent.DualLearningRateAgent:
+            AgentVars(alpha_win=0.3, alpha_loss=0.2, beta=3)
         """
-        self.alpha_win = 0.7
-        self.alpha_loss = 0.5
-        self.beta = 1  # The paper does not mention an inverse temperature parameter, but it should be included
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def update(self, **kwargs):
+        """This method updates agent parameters.
+        """
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
-class Agent:
-    def __init__(self, agent_vars):
+class DualLearningRateAgent:
+    """This class implements a Dual-Learning-Rate agent as described in Kahnt, Park et al. (2008).
+
+    This agent needs the following agent_vars to be set:
+        
+        alpha_win (float): Learning rate for gains.
+        alpha_loss (float): Learning rate for losses.
+        beta (float): Inverse temperature parameter of softmax choice rule.
+            This parameter is not mentioned in Kahnt, Park et al. (2008), but used here anyway.
+    """
+
+    def __init__(self, agent_vars, n_options):
+        """Initialize the Dual-Learning-Rate agent.
+
+        Args:
+            agent_vars (rl.agent.AgentVars): Agent specific parameters. Must have `alpha_win`, `alpha_loss` and `beta` attributes.
+            n_options (int): Number of options to represent.
+        """
+        self.check_agent_vars(agent_vars)
         self.agent_vars = agent_vars
-        self.options = [0, 1]
-        self.v_a_t = np.zeros(len(self.options))
-        self.a_t = None
+        self.options = range(n_options)
+        self.v_a_t = np.zeros(n_options)  # Initial values
+        self.a_t = None  # Initial action
+
+    def check_agent_vars(self, agent_vars):
+        for var in ["alpha_win", "alpha_loss", "beta"]:
+            if not hasattr(agent_vars, var):
+                raise ValueError(f"agent_vars is missing `{var}` attribute.")
 
     def __repr__(self):
         return f"Dual learning rate agent with\n  alpha_win = {self.agent_vars.alpha_win}\n  alpha_loss = {self.agent_vars.alpha_loss}\n  beta = {self.agent_vars.beta}"
@@ -43,9 +73,9 @@ class Agent:
             r_t (int): Current reward
         """
         delta_a_t = r_t - self.v_a_t[self.a_t]
-        if r_t == 1:
+        if r_t > 0:
             alpha = self.agent_vars.alpha_win
-        elif r_t == 0:
+        elif r_t <= 0:
             alpha = self.agent_vars.alpha_loss
         self.v_a_t[self.a_t] += alpha * delta_a_t
 
@@ -65,8 +95,8 @@ if __name__ == "__main__":
     p_r = {0: 0.8, 1: 0.2}
 
     # Agent setup
-    agent_vars = AgentVars()
-    agent = Agent(agent_vars=agent_vars)
+    agent_vars = AgentVars(alpha_win=0.3, alpha_loss=0.1, beta=1)
+    agent = DualLearningRateAgent(agent_vars=agent_vars, n_options=2)
     print(f"  v_a_t: {agent.v_a_t}")
 
     # Task performance
