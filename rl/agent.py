@@ -68,7 +68,7 @@ class DualLearningRateAgent:
         Returns:
             p_a_t (numpy.array): Choice probabilities
         """
-        p_a_t = np.exp(self.agent_vars.beta * Q_s_t) / np.sum(
+        p_a_t = np.exp(Q_s_t * self.agent_vars.beta) / np.sum(
             np.exp(Q_s_t * self.agent_vars.beta)
         )
         return p_a_t
