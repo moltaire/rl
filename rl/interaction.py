@@ -29,13 +29,14 @@ def agent_task_interaction(task, agent):
     ## Task variables
     trial = np.full(T, np.nan)  # trial
     block = np.full(T, np.nan)  # block
-    state = np.full(T, np.nan)  # state (rule / condition)
+    state = np.full(T, np.nan)  # true state (rule / condition)
     p_r = np.full((T, n_options), np.nan)  # reward probability for actions
     ev = np.full((T, n_options), np.nan)  # expected value for actions
     r = np.full(T, np.nan)  # reward
 
     ## Agent variables
     a = np.full(T, np.nan)  # decision
+    s = np.full(T, np.nan)  # agent-observed state
     corr = np.full(T, np.nan)  # correct decision
     p_a = np.full((T, n_options), np.nan)  # probability of actions
     Q = np.full((T, n_options), np.nan)  # action values
@@ -89,6 +90,7 @@ def agent_task_interaction(task, agent):
                 )
             # Record agent variables
             a[t] = agent.a_t
+            s[t] = agent.s_t
             corr[t] = task.correct_t
             for i in range(n_options):
                 p_a[t, i] = agent.p_a_t[i]
@@ -107,6 +109,7 @@ def agent_task_interaction(task, agent):
         df[f"ev_{i}"] = ev[:, i]
     df["r"] = r
     df["a"] = a
+    df["s"] = s
     df["corr"] = corr
     for i in range(n_options):
         df[f"p_a_{i}"] = p_a[:, i]
