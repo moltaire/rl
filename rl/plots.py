@@ -74,8 +74,8 @@ def plot_recovery_results(
 
     parameter_names = ["alpha_pos", "alpha_neg", "beta"]
     parameter_labels = {
-        "alpha_pos": r"$\alpha_{+}$",
-        "alpha_neg": r"$\alpha_{-}$",
+        "alpha_pos": r"$\alpha^{+}$",
+        "alpha_neg": r"$\alpha^{-}$",
         "beta": r"$\beta$",
     }
 

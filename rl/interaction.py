@@ -48,7 +48,7 @@ def agent_task_interaction(task, agent):
     for b in range(0, n_blocks):
 
         # Reset values (assume new stimuli in each block)
-        agent.Q_t = np.zeros((n_states, n_options))
+        agent.Q_t = agent.agent_vars.Q_init
         agent.p_a_t = np.zeros(n_options)
 
         # Cycle over trials t = 1,...T

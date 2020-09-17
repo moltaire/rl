@@ -104,12 +104,13 @@ class Estimation:
 
         return nll
 
-    def estimate(self, data, seed=None):
+    def estimate(self, data, agent_vars=None, seed=None):
 
         # Set RNG seed
         np.random.seed(seed)
-
-        agent_vars = AgentVars()
+        
+        if agent_vars is None:
+            agent_vars = AgentVars()
 
         # Initialize values
         min_nll = np.inf  # "Best" initial nll, overwritten by first estimation run

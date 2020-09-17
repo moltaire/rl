@@ -44,7 +44,10 @@ class DualLearningRateAgent:
         self.agent_vars = agent_vars
         self.options = range(n_options)
         self.variant = variant
-        self.Q_t = np.zeros((n_states, n_options))  # Initial values
+        # Initial values
+        if not hasattr(agent_vars, "Q_init"):
+            self.agent_vars.Q_init = np.zeros((n_states, n_options))
+        self.Q_t = self.agent_vars.Q_init.copy()
         self.a_t = None  # Initial action
         self.s_t = 0  # Initial state
 
