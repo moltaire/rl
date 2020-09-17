@@ -29,6 +29,7 @@ class EstimationVars:
         self.n_trials = task_vars.n_trials
         self.n_blocks = task_vars.n_blocks
         self.n_options = task_vars.n_options
+        self.n_states = task_vars.n_states
         self.agent_class = agent_class
         self.n_sp = n_sp
         self.parameters = parameters
@@ -42,8 +43,8 @@ class Estimation:
     def __init__(self, est_vars):
         self.est_vars = est_vars
 
-    def llh(self, x, data, agent_vars):
-        """This function computes the log-likelihood of choices
+    def nll(self, x, data, agent_vars):
+        """This function computes the negative log-likelihood of choices
 
         Args:
             x (np.array): Free parameters
@@ -55,7 +56,7 @@ class Estimation:
         parameters = {self.est_vars.parameters[i]: x[i] for i, v in enumerate(x)}
 
         # Initialize likelihood array
-        llh_a = np.full([self.est_vars.n_trials, self.est_vars.n_blocks], np.nan)
+        nll_a = np.full([self.est_vars.n_trials, self.est_vars.n_blocks], np.nan)
 
         # Cycle over blocks
         for b in range(self.est_vars.n_blocks):
@@ -63,12 +64,15 @@ class Estimation:
             # Extract required data
             a = data[data["block"] == b]["a"].values
             r = data[data["block"] == b]["r"].values
+            s = data[data["block"] == b]["s"].values
 
             # Assign current parameters
             agent_vars.update(**parameters)
             # Agent initialization
             agent = self.est_vars.agent_class(
-                agent_vars=agent_vars, n_options=self.est_vars.n_options
+                agent_vars=agent_vars,
+                n_options=self.est_vars.n_options,
+                n_states=self.est_vars.n_states,
             )
 
             # Initialize block specific variables
@@ -76,6 +80,9 @@ class Estimation:
 
             # Cycle over trials
             for t in range(0, self.est_vars.n_trials):
+
+                # Set observed state
+                agent.s_t = np.int(s[t])
 
                 # Evaluate probability of economic decisions
                 agent.decide()
@@ -87,15 +94,15 @@ class Estimation:
                 cp[t] = agent.p_a_t[np.int(a[t])]
 
                 # Compute log likelihood of economic decision
-                llh_a[t, b] = np.log(agent.p_a_t[np.int(a[t])])
+                nll_a[t, b] = np.log(agent.p_a_t[np.int(a[t])])
 
                 # Agent contingency parameter update
-                agent.learn(np.int(r[t]))
+                agent.learn(r[t])
 
         # Sum negative log likelihoods
-        llh = -1 * np.sum(llh_a)
+        nll = -1 * np.sum(nll_a)
 
-        return llh
+        return nll
 
     def estimate(self, data, seed=None):
 
@@ -105,7 +112,7 @@ class Estimation:
         agent_vars = AgentVars()
 
         # Initialize values
-        min_llh = np.inf  # "Best" initial LLH, overwritten by first estimation run
+        min_nll = np.inf  # "Best" initial nll, overwritten by first estimation run
         min_x = np.nan  # And no parameter estimate
 
         # Cycle over starting points
@@ -131,36 +138,37 @@ class Estimation:
 
             # Run the estimation
             result = minimize(
-                self.llh, x0, args=(data, agent_vars), method="L-BFGS-B", bounds=bounds
+                self.nll, x0, args=(data, agent_vars), method="L-BFGS-B", bounds=bounds
             )
 
             # Extract maximum likelihood parameter estimate
             x = result.x
 
             # Extract minimized negative log likelihood
-            llh = result.fun
+            nll = result.fun
 
             # Check if cumulated negative log likelihood is lower than the previous
             # one and select the lowest
-            if llh < min_llh:
-                min_llh = llh
+            if nll < min_nll:
+                min_nll = nll
                 min_x = x
 
         # Compute BIC for economic decision
-        bic = self.compute_bic(min_llh, self.est_vars.n_params)
+        bic = self.compute_bic(min_nll, self.est_vars.n_params)
 
-        return min_llh, bic, min_x.tolist()
+        return min_nll, bic, min_x.tolist()
 
-    def compute_bic(self, llh, n_params):
+    def compute_bic(self, nll, n_params):
         """ This function compute the Bayesian information criterion (BIC)
-            See Stephan et al. (2009). Bayesian model selection for group studies. NeuroImage
-        :param llh: Negative log likelihood
-        :param n_params: Number of free parameters
-        :return: bic
+            
+        Args:
+            nll (float): Minimized negative log likelihood
+            n_params (int): Number of free parameters
+        
+        Returns:
+            float: BIC
         """
-
-        bic = (-1 * llh) - (n_params / 2) * np.log(
-            self.est_vars.n_trials * self.est_vars.n_blocks
-        )
-
-        return bic
+        N = self.est_vars.n_trials * self.est_vars.n_blocks
+        LL = -nll
+        BIC = -2 * LL + n_params * np.log(N)
+        return BIC
