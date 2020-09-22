@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.stats import pearsonr
+import statsmodels.api as sm
 
 
-def simulate_normal_correlated_data(
+def generate_normal_correlated_data(
     N,
     r=0.5,
     mu_a=0,
@@ -65,3 +66,42 @@ def simulate_normal_correlated_data(
         print(f"  (It took {i} tries to achieve the desired tolerance.)")
 
     return data
+
+
+def generate_correlated_array(source, target_r, seed=None):
+    """ This function generates an array of data
+    that correlates with a source array to a desired degree.
+    
+    Args:
+        source (numpy.array): The source array that is already known.
+        target_r (float): The desired Pearson correlation between the source and target.
+        seed (int): Numpy random seed.
+        
+    Returns:
+        target (numpy.array): The target array.
+
+    Source: https://stats.stackexchange.com/a/313138
+    """
+    np.random.seed(seed)
+
+    # 1. Generate an initial target vector
+    _target = np.random.normal(size=source.size)
+
+    # 2. Run OLS regression of _target on source
+    endog = _target
+    exog = sm.add_constant(source)
+    model = sm.OLS(endog, exog)
+    results = model.fit()
+    resid = results.resid  # residuals
+
+    # 3. Add back a multiple of source to the residuals of the regression
+    target = (
+        target_r * np.std(resid) * source
+        + np.sqrt(1 - target_r ** 2) * np.std(source) * resid
+    )
+
+    # 4. Verify the correlation
+    r, p = pearsonr(source, target)
+    print(f"r = {r:.2f}, p = {p:.4f}")
+
+    return target
