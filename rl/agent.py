@@ -31,7 +31,7 @@ class DualLearningRateAgent:
             This parameter is not mentioned in Kahnt, Park et al. (2008), but used here anyway.
     """
 
-    def __init__(self, agent_vars, n_options, n_states=1, variant="delta"):
+    def __init__(self, agent_vars, n_options, n_states=1, variant=None):
         """Initialize the Dual-Learning-Rate agent.
 
         Args:
@@ -47,6 +47,14 @@ class DualLearningRateAgent:
         # Initial values
         if not hasattr(agent_vars, "Q_init"):
             self.agent_vars.Q_init = np.zeros((n_states, n_options))
+
+        # Allow specification of variant via agent_vars. Override if it's specified.
+        if hasattr(agent_vars, "variant"):
+            if (self.variant is not None) and (self.variant != agent_vars.variant):
+                print(
+                    f"Overriding 'variant' keyword with agent_vars: {self.variant} -> {agent_vars.variant}"
+                )
+            self.variant = agent_vars.variant
         self.Q_t = self.agent_vars.Q_init.copy()
         self.a_t = None  # Initial action
         self.s_t = 0  # Initial state
@@ -99,6 +107,10 @@ class DualLearningRateAgent:
         """This function implements the agent's choice.
         """
         self.p_a_t = self.softmax(self.Q_t[self.s_t, :])
+        if np.any(np.isnan(self.p_a_t)):
+            import ipdb
+
+            ipdb.set_trace()
         self.a_t = np.random.choice(self.options, p=self.p_a_t)
 
     def observe_state(self, task):

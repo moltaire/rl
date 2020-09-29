@@ -81,6 +81,10 @@ class Estimation:
             # Cycle over trials
             for t in range(0, self.est_vars.n_trials):
 
+                # Skip the whole trial if no action was made
+                if np.isnan(a[t]):
+                    continue
+
                 # Set observed state
                 agent.s_t = np.int(s[t])
 
@@ -100,7 +104,7 @@ class Estimation:
                 agent.learn(r[t])
 
         # Sum negative log likelihoods
-        nll = -1 * np.sum(nll_a)
+        nll = -1 * np.nansum(nll_a)
 
         return nll
 
@@ -108,7 +112,7 @@ class Estimation:
 
         # Set RNG seed
         np.random.seed(seed)
-        
+
         if agent_vars is None:
             agent_vars = AgentVars()
 
