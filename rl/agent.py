@@ -52,7 +52,7 @@ class DualLearningRateAgent:
         if hasattr(agent_vars, "variant"):
             if (self.variant is not None) and (self.variant != agent_vars.variant):
                 print(
-                    f"Overriding 'variant' keyword with agent_vars: {self.variant} -> {agent_vars.variant}"
+                    f"Overriding variant with value set in agent_vars: {self.variant} -> {agent_vars.variant}"
                 )
             self.variant = agent_vars.variant
         self.Q_t = self.agent_vars.Q_init.copy()
