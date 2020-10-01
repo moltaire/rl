@@ -44,6 +44,7 @@ class DualLearningRateAgent:
         self.agent_vars = agent_vars
         self.options = range(n_options)
         self.variant = variant
+
         # Initial values
         if not hasattr(agent_vars, "Q_init"):
             self.agent_vars.Q_init = np.zeros((n_states, n_options))
@@ -107,10 +108,6 @@ class DualLearningRateAgent:
         """This function implements the agent's choice.
         """
         self.p_a_t = self.softmax(self.Q_t[self.s_t, :])
-        if np.any(np.isnan(self.p_a_t)):
-            import ipdb
-
-            ipdb.set_trace()
         self.a_t = np.random.choice(self.options, p=self.p_a_t)
 
     def observe_state(self, task):

@@ -68,6 +68,7 @@ class Estimation:
 
             # Assign current parameters
             agent_vars.update(**parameters)
+
             # Agent initialization
             agent = self.est_vars.agent_class(
                 agent_vars=agent_vars,
