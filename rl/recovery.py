@@ -8,11 +8,11 @@ from rl.agent import AgentVars, DualLearningRateAgent
 from rl.estimation import Estimation, EstimationVars
 from rl.interaction import agent_task_interaction
 from rl.plot_utils import set_mpl_defaults
-from rl.plots import plot_recovery_results
+from rl.plots import plot_recovery_results, plot_data
 from rl.task import ReversalLearningTask, TaskVars
 
 
-def run_recovery(task, agent, est, parameter_values):
+def run_systematic_recovery(task, agent, est, parameter_values):
     """This function runs a systematic parameter recovery.
     Each parameter is treated as `variable` once, and varied over combinations of three levels (`low`, `medium`, `high`) of the other parameters.
     Parameter levels and values are defined in the `parameter_values` dictionary.
@@ -107,6 +107,72 @@ def run_recovery(task, agent, est, parameter_values):
                     # Update index and progressbar
                     i += 1
                     pbar.update()
+
+    # Combine results into one DataFrame and return it
+    recovery_results = pd.concat(recovery_results)
+
+    return recovery_results
+
+
+def run_estimate_recovery(task, agent, est, parameter_values):
+    """This function runs a parameter recovery using a set of parameter estimates.
+    Estimates are usually obtained from fitting the model to empirical data.
+
+    Args:
+        task (rl.task.Task): Task instance
+        agent (rl.agent.Agent): Agent instance
+        est (rl.estimation.estimation): Estimation instance
+        parameter_values (dict): Dictionary with parameter as keys and arrays of parameters as values. For example `dict(alpha_pos=np.array([0.3, 0.5, 0.3]), alpha_neg=np.array([0.2, 0.3, 0.3]), beta=np.array([2, 3, 4]))`
+
+    Returns:
+        pandas.DataFrame: Combined result of all recovery runs.
+    """
+
+    # Make a handy list of parameter names
+    parameter_names = list(parameter_values.keys())
+
+    # Calculate total number of recoveries to perform
+    N = len(parameter_values[parameter_names[0]])
+
+    # Initialize storage for results
+    recovery_results = []
+
+    # Cycle over parameter sets (usually these belong to individual subjects)
+    for i in tqdm(range(N)):
+
+        # Make a dictionary of parameter values
+        parameters = {
+            parameter: parameter_values[parameter][i] for parameter in parameter_names
+        }
+
+        # Assign the parameters to the agent
+        agent.agent_vars.update(**parameters)
+
+        # Simulate data, by letting the agent interact with the task
+        data = agent_task_interaction(task, agent)
+
+        # Estimate parameters from the simulated data, using the estimation instance
+        nll, bic, parameter_estimates = est.estimate(
+            data=data, agent_vars=agent.agent_vars, seed=i
+        )
+
+        # Write results to a DataFrame and add it to the results list
+        result = pd.DataFrame(
+            dict(
+                idx=i,
+                n_trials=task.task_vars.n_trials,
+                n_blocks=task.task_vars.n_blocks,
+                n_sp=est.est_vars.n_sp,
+                nll=nll,
+                bic=bic,
+            ),
+            index=[i],
+        )
+        for parameter, estimate in zip(parameter_names, parameter_estimates):
+            result[parameter] = parameter_values[parameter][i]
+            result[f"{parameter}_hat"] = estimate
+
+        recovery_results.append(result)
 
     # Combine results into one DataFrame and return it
     recovery_results = pd.concat(recovery_results)
