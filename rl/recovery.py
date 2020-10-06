@@ -114,7 +114,7 @@ def run_systematic_recovery(task, agent, est, parameter_values):
     return recovery_results
 
 
-def run_estimate_recovery(task, agent, est, parameter_values):
+def run_estimate_recovery(task, agent, est, parameter_values, verbose=True):
     """This function runs a parameter recovery using a set of parameter estimates.
     Estimates are usually obtained from fitting the model to empirical data.
 
@@ -138,7 +138,11 @@ def run_estimate_recovery(task, agent, est, parameter_values):
     recovery_results = []
 
     # Cycle over parameter sets (usually these belong to individual subjects)
-    for i in tqdm(range(N)):
+    if verbose:
+        Nrange = tqdm(range(N))
+    else:
+        Nrange = range(N)
+    for i in Nrange:
 
         # Make a dictionary of parameter values
         parameters = {
@@ -248,7 +252,7 @@ if __name__ == "__main__":
     est = Estimation(est_vars=est_vars)
 
     # Run recovery
-    recovery_results = run_recovery(task, agent, est, parameter_values)
+    recovery_results = run_systematic_recovery(task, agent, est, parameter_values)
     recovery_results.to_csv("example_recovery-results.csv")
 
     # Make a plot
