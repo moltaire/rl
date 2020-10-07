@@ -79,7 +79,7 @@ def run_systematic_recovery(task, agent, est, parameter_values):
 
                     # Estimate parameters from the simulated data, using the estimation instance
                     nll, bic, (alpha_pos_hat, alpha_neg_hat, beta_hat) = est.estimate(
-                        data=data, seed=i
+                        data=data, agent_vars=agent.agent_vars, seed=i
                     )
 
                     # Write results to a DataFrame and add it to the results list
