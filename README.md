@@ -1,2 +1,2 @@
 # rl
-Reinforcement Learning tools
+Reinforcement Learning resources
